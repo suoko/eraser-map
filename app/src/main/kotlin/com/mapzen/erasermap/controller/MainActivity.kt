@@ -1,13 +1,9 @@
 package com.mapzen.erasermap.controller
 
-import android.animation.Animator
-import android.animation.AnimatorSet
-import android.animation.ObjectAnimator
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Point
-import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.os.Handler
 import android.preference.PreferenceManager
@@ -17,17 +13,15 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.view.View.TRANSLATION_Y
-import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.RelativeLayout
-import android.widget.TextView
 import android.widget.Toast
 import com.mapzen.android.MapView
 import com.mapzen.android.MapzenMap
+import com.mapzen.android.MapzenSearch
 import com.mapzen.android.lost.api.LocationServices
 import com.mapzen.erasermap.CrashReportService
 import com.mapzen.erasermap.EraserMapApplication
@@ -36,9 +30,7 @@ import com.mapzen.erasermap.model.AndroidAppSettings
 import com.mapzen.erasermap.model.ApiKeys
 import com.mapzen.erasermap.model.AppSettings
 import com.mapzen.erasermap.model.ConfidenceHandler
-import com.mapzen.erasermap.view.InstructionGrouper
 import com.mapzen.erasermap.model.MapzenLocation
-import com.mapzen.erasermap.model.MultiModalHelper
 import com.mapzen.erasermap.model.PermissionManager
 import com.mapzen.erasermap.model.RouteManager
 import com.mapzen.erasermap.model.TileHttpHandler
@@ -48,13 +40,9 @@ import com.mapzen.erasermap.util.AxisAlignedBoundingBox.PointD
 import com.mapzen.erasermap.util.NotificationBroadcastReceiver
 import com.mapzen.erasermap.util.NotificationCreator
 import com.mapzen.erasermap.view.CompassView
-import com.mapzen.erasermap.view.DirectionListAdapter
-import com.mapzen.erasermap.view.DirectionListView
-import com.mapzen.erasermap.view.DistanceView
 import com.mapzen.erasermap.view.MuteView
 import com.mapzen.erasermap.view.RouteModeView
 import com.mapzen.erasermap.view.RoutePreviewView
-import com.mapzen.erasermap.view.MultiModalDirectionListAdapter
 import com.mapzen.erasermap.view.SearchResultsAdapter
 import com.mapzen.erasermap.view.SearchResultsView
 import com.mapzen.erasermap.view.SettingsActivity
@@ -74,7 +62,6 @@ import com.mapzen.pelias.widget.AutoCompleteListView
 import com.mapzen.pelias.widget.PeliasSearchView
 import com.mapzen.tangram.LngLat
 import com.mapzen.tangram.TouchInput
-import com.mapzen.valhalla.Instruction
 import com.mapzen.valhalla.Route
 import com.mapzen.valhalla.RouteCallback
 import com.mapzen.valhalla.Router
@@ -105,7 +92,7 @@ class MainActivity : AppCompatActivity(), MainViewController,
     @Inject lateinit var settings: AppSettings
     @Inject lateinit var tileHttpHandler: TileHttpHandler
     @Inject lateinit var mapzenLocation: MapzenLocation
-    @Inject lateinit var pelias: Pelias
+    @Inject lateinit var mapzenSearch: MapzenSearch
     @Inject lateinit var speaker: Speaker
     @Inject lateinit var permissionManager: PermissionManager
     @Inject lateinit var apiKeys: ApiKeys
@@ -751,8 +738,8 @@ class MainActivity : AppCompatActivity(), MainViewController,
     }
 
     override fun placeSearch(gid: String) {
-        pelias.setLocationProvider(presenter.getPeliasLocationProvider())
-        pelias.place(gid, (PlaceCallback()))
+        mapzenSearch.setLocationProvider(presenter.getPeliasLocationProvider())
+        mapzenSearch.place(gid, (PlaceCallback()))
     }
 
     override fun emptyPlaceSearch() {
@@ -762,12 +749,12 @@ class MainActivity : AppCompatActivity(), MainViewController,
     }
 
     override fun reverseGeolocate(screenX: Float, screenY: Float) {
-        pelias.setLocationProvider(presenter.getPeliasLocationProvider())
+        mapzenSearch.setLocationProvider(presenter.getPeliasLocationProvider())
         val coords = mapzenMap?.coordinatesAtScreenPosition(screenX.toDouble(), screenY.toDouble())
         presenter.reverseGeoLngLat = coords
         presenter.currentFeature = getGenericLocationFeature(coords?.latitude as Double,
                 coords?.longitude as Double)
-        pelias.reverse(coords?.latitude as Double, coords?.longitude as Double,
+        mapzenSearch.reverse(coords?.latitude as Double, coords?.longitude as Double,
                 ReversePeliasCallback())
     }
 

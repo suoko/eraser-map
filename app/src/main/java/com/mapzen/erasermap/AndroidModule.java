@@ -1,9 +1,11 @@
 package com.mapzen.erasermap;
 
+import com.mapzen.android.MapzenSearch;
 import com.mapzen.android.lost.api.LostApiClient;
 import com.mapzen.erasermap.model.AndroidAppSettings;
 import com.mapzen.erasermap.model.ApiKeys;
 import com.mapzen.erasermap.model.AppSettings;
+import com.mapzen.erasermap.model.Http;
 import com.mapzen.erasermap.model.IntentQueryParser;
 import com.mapzen.erasermap.model.LocationConverter;
 import com.mapzen.erasermap.model.MapzenLocation;
@@ -20,6 +22,7 @@ import com.mapzen.erasermap.util.IntentFactory;
 import com.mapzen.erasermap.view.Speaker;
 import com.mapzen.erasermap.view.SpeakerboxSpeaker;
 import com.mapzen.pelias.Pelias;
+import com.mapzen.pelias.PeliasService;
 
 import com.squareup.otto.Bus;
 
@@ -29,6 +32,7 @@ import javax.inject.Singleton;
 
 import dagger.Module;
 import dagger.Provides;
+import retrofit.RequestInterceptor;
 import retrofit.RestAdapter;
 
 @Module
@@ -84,12 +88,26 @@ public class AndroidModule {
         return new Bus();
     }
 
-    @Provides @Singleton Pelias providePelias() {
+    @Provides @Singleton MapzenSearch provideMapzenSearch(ApiKeys apiKeys) {
         final String endpoint = BuildConfig.SEARCH_BASE_URL != null ?
-                BuildConfig.SEARCH_BASE_URL : Pelias.DEFAULT_SERVICE_ENDPOINT;
+                BuildConfig.SEARCH_BASE_URL : Pelias.DEFAULT_SEARCH_ENDPOINT;
         final RestAdapter.LogLevel logLevel = BuildConfig.DEBUG ?
                 RestAdapter.LogLevel.FULL : RestAdapter.LogLevel.NONE;
-        return Pelias.getPeliasWithEndpoint(endpoint, logLevel);
+        MapzenSearch search = new MapzenSearch(application);
+        final ApiKeys keys = apiKeys;
+        RestAdapter restAdapter = new RestAdapter.Builder()
+            .setEndpoint(endpoint)
+            .setLogLevel(logLevel)
+            .setRequestInterceptor(new RequestInterceptor() {
+                @Override public void intercept(RequestFacade request) {
+                    request.addQueryParam(com.mapzen.android.ApiKeys.API_KEY,
+                        keys.getSearchKey());
+                    request.addHeader(Http.HEADER_DNT, Http.VALUE_HEADER_DNT);
+                }
+            })
+            .build();
+        search.getPelias().setService(restAdapter.create(PeliasService.class));
+        return search;
     }
 
     @Provides @Singleton Speaker provideSpeaker() {
